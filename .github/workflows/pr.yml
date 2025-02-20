@@ -1,0 +1,68 @@
+name: Build and Verify Jenkins Plugin
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Maven Action
+        uses: s4u/setup-maven-action@v1.7.0
+        with:
+          checkout-fetch-depth: 0
+          java-version: 17
+          java-distribution: temurin
+          maven-version: 3.9.9
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Set up custom Maven settings
+        run: |
+          mkdir -p ~/.m2
+          echo '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                            http://maven.apache.org/xsd/settings-1.0.0.xsd">
+                    <pluginGroups>
+                      <pluginGroup>org.jenkins-ci.tools</pluginGroup>
+                    </pluginGroups>
+                    <profiles>
+                      <profile>
+                        <id>jenkins</id>
+                        <activation>
+                          <activeByDefault>true</activeByDefault>
+                        </activation>
+                        <repositories>
+                          <repository>
+                            <id>repo.jenkins-ci.org</id>
+                            <url>https://repo.jenkins-ci.org/public/</url>
+                          </repository>
+                        </repositories>
+                        <pluginRepositories>
+                          <pluginRepository>
+                            <id>repo.jenkins-ci.org</id>
+                            <url>https://repo.jenkins-ci.org/public/</url>
+                          </pluginRepository>
+                        </pluginRepositories>
+                      </profile>
+                    </profiles>
+                  </settings>' > ~/.m2/settings.xml
+
+      - name: Build and Verify
+        run: mvn verify

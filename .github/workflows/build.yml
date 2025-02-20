@@ -1,0 +1,153 @@
+name: Release Jenkins Plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version which should be applied to the binary
+        type: string
+        required: true
+      dev_upload:
+        description: If true will upload the binary to the dev bucket
+        type: boolean
+        default: true
+      dev_stable:
+        description: If true will mark the binary as stable
+        type: boolean
+        default: false
+      prod_upload:
+        description: If true will upload the binary to the prod bucket
+        type: boolean
+        default: false
+      prod_stable:
+        description: If true will mark the binary as stable
+        type: boolean
+        default: false
+
+  workflow_call:
+    inputs:
+      version:
+        description: The version which should be applied to the binary
+        type: string
+        required: true
+      dev_upload:
+        description: If true will upload the binary to the dev bucket
+        type: boolean
+        default: true
+      dev_stable:
+        description: If true will mark the binary as stable
+        type: boolean
+        default: false
+      prod_upload:
+        description: If true will upload the binary to the prod bucket
+        type: boolean
+        default: false
+      prod_stable:
+        description: If true will mark the binary as stable
+        type: boolean
+        default: false
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+
+env:
+  DEV_RELEASES_BUCKET: s3://releases.upwind.dev/shiftleft-jenkins
+  PROD_RELEASES_BUCKET: s3://releases.upwind.io/shiftleft-jenkins
+  AWS_REGION: us-east-1
+  AWS_ACCOUNT_ID: 693339160499
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Maven Action
+        uses: s4u/setup-maven-action@v1.7.0
+        with:
+          checkout-fetch-depth: 0
+          java-version: 17
+          java-distribution: temurin
+          maven-version: 3.9.9
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Set up custom Maven settings
+        run: |
+          mkdir -p ~/.m2
+          echo '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                            http://maven.apache.org/xsd/settings-1.0.0.xsd">
+                    <pluginGroups>
+                      <pluginGroup>org.jenkins-ci.tools</pluginGroup>
+                    </pluginGroups>
+                    <profiles>
+                      <profile>
+                        <id>jenkins</id>
+                        <activation>
+                          <activeByDefault>true</activeByDefault>
+                        </activation>
+                        <repositories>
+                          <repository>
+                            <id>repo.jenkins-ci.org</id>
+                            <url>https://repo.jenkins-ci.org/public/</url>
+                          </repository>
+                        </repositories>
+                        <pluginRepositories>
+                          <pluginRepository>
+                            <id>repo.jenkins-ci.org</id>
+                            <url>https://repo.jenkins-ci.org/public/</url>
+                          </pluginRepository>
+                        </pluginRepositories>
+                      </profile>
+                    </profiles>
+                  </settings>' > ~/.m2/settings.xml
+
+      - name: Build
+        run: mvn install
+
+      - name: Upload ShiftLeft Jenkins Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shift-left-jenkins-${{github.ref_name}}.hpi
+          path: target/shift-left-jenkins.hpi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-${{ github.repository_owner }}-${{ github.event.repository.name }}
+
+      - name: Upload Plugin Release to DEV S3
+        if: ${{ inputs.dev_upload }}
+        shell: bash
+        run: |
+          cd target && aws s3 sync --exclude="*" --include="shift-left-jenkins.hpi" . ${DEV_RELEASES_BUCKET}/${{ inputs.version }}/ --no-progress
+
+      - name: Update DEV S3 stable
+        if: ${{ (inputs.dev_upload) && (inputs.dev_stable) }}
+        shell: bash
+        run: |
+          cd target && aws s3 sync --exclude="*" --include="shift-left-jenkins.hpi" . ${DEV_RELEASES_BUCKET}/stable/ --no-progress
+
+      - name: Upload Worker Release to PROD S3
+        if: ${{ inputs.prod_upload }}
+        shell: bash
+        run: |
+          cd target && aws s3 sync --exclude="*" --include="shift-left-jenkins.hpi" . ${PROD_RELEASES_BUCKET}/${{ inputs.version }}/ --no-progress
+
+      - name: Update PROD S3 stable
+        if: ${{ (inputs.prod_upload) && (inputs.prod_stable) }}
+        shell: bash
+        run: |
+          cd target && aws s3 sync --exclude="*" --include="shift-left-jenkins.hpi" . ${PROD_RELEASES_BUCKET}/stable/ --no-progress

@@ -1,0 +1,4 @@
+.idea
+target
+jenkins_home/jobs/example-job/*
+!jenkins_home/jobs/example-job/config.xml
