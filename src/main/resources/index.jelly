@@ -1,0 +1,7 @@
+<?jelly escape-by-default='true'?>
+<div>
+    Shift Left by Upwind brings robust security scanning directly into your Jenkins pipeline.
+    Designed to help teams "shift left" on security, this plugin identifies package vulnerabilities
+    early in the development process. Add Shift Left as a build step to prevent security risks before
+    they reach production, ensuring a safer, more resilient codebase.
+</div>

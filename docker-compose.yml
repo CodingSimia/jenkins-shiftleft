@@ -1,0 +1,53 @@
+services:
+  socat:
+    image: alpine/socat
+    command: tcp-listen:2375,fork,reuseaddr unix-connect:/var/run/docker.sock
+    user: root
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    ports:
+      - "2375:2375"
+  jenkins:
+    build: .
+    platform: linux/amd64
+    user: root
+    ports:
+      - "8080:8080"
+      - "5005:5005" # Remote debugging portß
+    environment:
+      DOCKER_HOST: tcp://socat:2375
+      # JAVA_OPTS to enable remote debugging
+      # note: `suspend=y` will wait for debugger to attach before starting jenkins
+      JAVA_OPTS: |
+        -Dhudson.PluginManager.dynamicLoad=true
+        -Djenkins.install.runSetupWizard=false
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      # Install the shift left plugin (assumes it's been built with `mvn clean install`)
+      - ./target/shift-left-jenkins.hpi:/usr/share/jenkins/ref/plugins/shift-left-jenkins.hpi
+      - ./jenkins_home/jobs:/var/jenkins_home/jobs
+      - ~/.ssh:/root/.ssh:ro  # Mount the SSH directory to allow SSH access to github
+
+  jenkins-agent:
+    build:
+        context: .
+        dockerfile: ./Dockerfile.agent
+    platform: linux/amd64
+    user: root
+    depends_on:
+      - jenkins
+    environment:
+      DOCKER_HOST: tcp://socat:2375
+      JENKINS_URL: "http://jenkins:8080"
+      JENKINS_SECRET: "ff12789d9f8b3f007730c2457cecb30a9b24563305353803c6fa9320743f83da"
+      JENKINS_AGENT_NAME: "docker-agent"
+    volumes:
+      - jenkins_agent:/home/jenkins/agent
+      - ~/.ssh:/root/.ssh:ro
+
+volumes:
+  jenkins_home:
+  jenkins_agent:
