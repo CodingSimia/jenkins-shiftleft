@@ -9,17 +9,17 @@ pipeline {
         }
         stage('Build Image') {
             steps {
-                sh 'docker build . --platform=linux/amd64 -t=shift-left-test'
+                sh 'docker build . -t=shift-left-test'
             }
         }
         stage('Shift Left Scan') {
             steps {
                 shiftLeftScan(
-                    dockerImage: 'shift-left-test',
-                    commit: "${GIT_COMMIT}",
-                    branch: "${GIT_BRANCH}",
-                    repo: "${GIT_URL}",
-                    upwindUri: 'upwind.dev'
+                        dockerImage: 'shift-left-test',
+                        commit: "${GIT_COMMIT}",
+                        branch: "${GIT_BRANCH}",
+                        repo: "${GIT_URL}",
+                        upwindUri: 'upwind.dev'
                 )
             }
         }
@@ -31,12 +31,12 @@ pipeline {
         stage('Shift Left Publish Event') {
             steps {
                 shiftLeftEvent(
-                    eventType: 'IMAGE_PUBLISH',
-                    dockerImage: 'shift-left-test',
-                    commit: "${GIT_COMMIT}",
-                    branch: "${GIT_BRANCH}",
-                    repo: "${GIT_URL}",
-                    upwindUri: 'upwind.dev'
+                        eventType: 'IMAGE_PUBLISH',
+                        dockerImage: 'shift-left-test',
+                        commit: "${GIT_COMMIT}",
+                        branch: "${GIT_BRANCH}",
+                        repo: "${GIT_URL}",
+                        upwindUri: 'upwind.dev'
                 )
             }
         }
@@ -48,12 +48,12 @@ pipeline {
         stage('Shift Left Deploy Event') {
             steps {
                 shiftLeftEvent(
-                    eventType: 'IMAGE_DEPLOY',
-                    dockerImage: 'shift-left-test',
-                    commit: "${GIT_COMMIT}",
-                    branch: "${GIT_BRANCH}",
-                    repo: "${GIT_URL}",
-                    upwindUri: 'upwind.dev'
+                        eventType: 'IMAGE_DEPLOY',
+                        dockerImage: 'shift-left-test',
+                        commit: "${GIT_COMMIT}",
+                        branch: "${GIT_BRANCH}",
+                        repo: "${GIT_URL}",
+                        upwindUri: 'upwind.dev'
                 )
             }
         }
