@@ -19,7 +19,7 @@ pipeline {
                         commit: "${GIT_COMMIT}",
                         branch: "${GIT_BRANCH}",
                         repo: "${GIT_URL}",
-                        upwindUri: 'upwind.dev'
+                        upwindUri: 'upwind.io'
                 )
             }
         }
