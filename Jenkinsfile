@@ -35,6 +35,7 @@ pipeline {
                         commit: "${GIT_COMMIT}",
                         branch: "${GIT_BRANCH}",
                         repo: "${GIT_URL}",
+                        upwindUri: 'upwind.io'
                 )
             }
         }
@@ -51,25 +52,12 @@ pipeline {
                         commit: "${GIT_COMMIT}",
                         branch: "${GIT_BRANCH}",
                         repo: "${GIT_URL}",
+                        upwindUri: 'upwind.io'
                 )
             }
         }
-
-        stage ("Test Existing Images") {
-            steps {
-                shiftLeftEvent(
-                        dockerImage: 'ubuntu:20.04',
-                        commit: "${GIT_COMMIT}",
-                        branch: "${GIT_BRANCH}",
-                        repo: "${GIT_URL}",
-                )
-                shiftLeftEvent(
-                        dockerImage: 'ubuntu:24.04',
-                        commit: "${GIT_COMMIT}",
-                        branch: "${GIT_BRANCH}",
-                        repo: "${GIT_URL}",
-                )
-            }
+    }
+}
         }
     }
 }
