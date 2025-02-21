@@ -18,7 +18,7 @@
       <userRemoteConfigs>
         <hudson.plugins.git.UserRemoteConfig>
           <url>git@github.com:CodingSimia/jenkins-shiftleft.git</url>
-          <credentialsId>0364b813-515b-46ce-84a2-b004c6092f40</credentialsId>
+          <credentialsId>56e4dc45-c4fb-4d30-86c3-ea49c4e5e94a</credentialsId>
         </hudson.plugins.git.UserRemoteConfig>
       </userRemoteConfigs>
       <branches>
